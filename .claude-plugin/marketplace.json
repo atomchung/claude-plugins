@@ -1,0 +1,11 @@
+{
+  "name": "atomchung",
+  "owner": { "name": "atomchung" },
+  "plugins": [
+    {
+      "name": "personal-os",
+      "source": "./plugins/personal-os",
+      "description": "ting 的個人 OS 跨 repo 工具。提供 /personal-os:record——把雲端 Claude session 整理成 session-board 相容的 canonical frontmatter 任務記錄，寫進當前 repo，供本地 reconcile 回流 personal_os。"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "personal-os",
+  "description": "Cross-repo personal-OS tooling. Provides /record to capture a Claude session as a session-board-compatible task record inside the current repo (cloud-safe: no local paths, no personal data).",
+  "version": "0.1.0",
+  "author": { "name": "atomchung" }
+}
