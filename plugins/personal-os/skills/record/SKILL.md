@@ -9,10 +9,10 @@ description: 把當前 Claude 對話整理成一份任務記錄，用 canonical 
 
 > **為什麼寫 inbox，不寫當前 repo / 不寫 personal_os**：雲端碰不到本機 personal_os（local-only 唯一副本）；而把記錄寫進「當前工作 repo」會洩漏 public repo、污染 git 史、撞並行寫入。改 push 一個專用 private inbox 最安全。本地 `record_reconcile.py` 會把 inbox 併進 `personal_os/tasks/`，`/session-board` 才看得到。本檔**不含任何本機路徑與個資**，可安全放 public marketplace。
 
-## 前置（環境變數，一次性設在 cloud environment settings）
-- **`RECORD_INBOX_REPO`（必填）**：private inbox repo，格式 `owner/repo`。
-- **`GH_TOKEN`（選填）**：僅當雲端內建 git 認證無法 push 到 inbox 時才需要——用一把**只授權該 inbox repo、`contents:write`** 的 fine-grained PAT。
-- **deny-by-default**：若 `RECORD_INBOX_REPO` 未設，**停下提示用戶先設定，絕不 fallback 寫進當前 repo**（會洩漏）。
+## inbox 目標（預設已內建，通常你什麼都不用設）
+- inbox repo = `$RECORD_INBOX_REPO`（若雲端環境有設）否則用**內建預設 `atomchung/session-records`**。
+- **絕不寫進當前工作 repo**——只寫 inbox（避免 public 洩漏 / git 史污染 / 並行 race）。
+- **`GH_TOKEN`（選填）**：僅當雲端內建 git 認證無法 push 到 inbox 時才需要——用一把**只授權該 inbox repo、`contents:write`** 的 fine-grained PAT，設在 cloud environment settings。
 
 ## ⚠️ 兩個不可妥協的價值核心
 1. frontmatter 必須是 **canonical YAML**（下方 schema）。session-board parser 只認 frontmatter，舊式 `> Status:` 引言區塊會被**靜默漏掉**。
@@ -47,23 +47,23 @@ synced: false
 內容結構：`# Title` / `## Context` / `## Sessions` →`### {date} Session`（關鍵發現 / 檔案清單 / 待辦 / 後續行動）。
 
 ### 4. 立即 push 到 inbox（**不要等 session 結束**——雲端 crash 會丟失）
-優先用 git；失敗才走 API。
+先解析 inbox 與 slug；優先用 git，失敗才走 API。
 
 ```bash
+INBOX="${RECORD_INBOX_REPO:-atomchung/session-records}"   # 預設已內建，通常不用設
 # A. git（最佳，無需額外 token）
-cd /tmp && rm -rf inbox && git clone --depth 1 "https://github.com/$RECORD_INBOX_REPO" inbox && cd inbox
+cd /tmp && rm -rf inbox && git clone --depth 1 "https://github.com/$INBOX" inbox && cd inbox
 mkdir -p records
 # 寫 records/<slug>.md；若已存在 → 在其 ## Sessions 底下「追加」新 session 區塊，不覆蓋
-git add records/<slug>.md
-git commit -m "record: <slug>"
+git add records/<slug>.md && git commit -m "record: <slug>"
 git pull --rebase && git push        # 多 session 並行安全
 ```
 ```bash
-# B. fallback：Contents API（需 $GH_TOKEN）。先 GET 取舊 sha（檔已存在才有），再 PUT base64 內容
+# B. fallback：Contents API（需 $GH_TOKEN）。先 GET 舊 sha（檔已存在才有），再 PUT base64 內容
 curl -s -H "Authorization: token $GH_TOKEN" \
-  "https://api.github.com/repos/$RECORD_INBOX_REPO/contents/records/<slug>.md"   # 取 .sha（若有）
+  "https://api.github.com/repos/$INBOX/contents/records/<slug>.md"   # 取 .sha（若有）
 curl -s -X PUT -H "Authorization: token $GH_TOKEN" \
-  "https://api.github.com/repos/$RECORD_INBOX_REPO/contents/records/<slug>.md" \
+  "https://api.github.com/repos/$INBOX/contents/records/<slug>.md" \
   -d "{\"message\":\"record: <slug>\",\"content\":\"$(base64 -w0 <slug>.md)\",\"sha\":\"<舊sha或省略>\"}"
 ```
 
