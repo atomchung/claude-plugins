@@ -20,7 +20,9 @@ description: 把當前 Claude 對話整理成一份任務記錄，用 canonical 
 
 ## 工作流
 
-> **執行方式**：用 Agent tool 生一個 `model: claude-sonnet-4-6` 的 sub-agent，把以下整個工作流（step 1 到最後）的完整指令與對話內容傳給它執行。主 session 只負責 dispatch，實際整理、push 全由 sub-agent 完成。
+> **執行方式**：用 Agent tool 生一個 `model: sonnet` 的 sub-agent（解析為當前 Sonnet 世代），把以下整個工作流（step 1 到最後）的完整指令與對話內容傳給它執行。主 session 只負責 dispatch，實際整理、push 全由 sub-agent 完成。
+>
+> ⚠️ **Dispatch 時不要把這段「執行方式」meta 指令原文複製進 sub-agent 的 prompt**——只傳 step 1 到最後的工作內容。sub-agent 讀到「用 Agent tool 生一個 sub-agent」會誤以為要對自己再遞迴一層，曾造成重複 dispatch。
 
 ### 1. 決定 slug
 kebab-case，一行看得出是什麼任務。
